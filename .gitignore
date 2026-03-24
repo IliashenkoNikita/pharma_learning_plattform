@@ -1,0 +1,22 @@
+# Dotnet
+**/bin/
+**/obj/
+.vs/
+
+# Node
+**/node_modules/
+**/.next/
+
+# Logs
+*.log
+
+# Env files
+.env
+.env.local
+.env.*.local
+.env.prod
+.env.prod.*
+
+# OS
+.DS_Store
+Thumbs.db

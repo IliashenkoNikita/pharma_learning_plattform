@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: pharma-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pharma_training
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/PharmaTraining.Api/Dockerfile
+    container_name: pharma-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=pharma_training;Username=postgres;Password=postgres
+      Jwt__Secret: dev-secret-change-before-prod-very-long-key-12345
+      Jwt__Issuer: PharmaTrainingDev
+      Jwt__Audience: PharmaTrainingClient
+      Jwt__ExpiresMinutes: 120
+      AzureBlob__ConnectionString: UseDevelopmentStorage=true
+      AzureBlob__ContainerName: pharma-files
+    ports:
+      - "8081:8080"
+
+  frontend:
+    build:
+      context: ./new_frontend_pharmacy
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8081
+    container_name: pharma-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: http://localhost:8081
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

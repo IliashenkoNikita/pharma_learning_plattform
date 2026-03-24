@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: pharma-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pharma_training
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/PharmaTraining.Api/Dockerfile
+    container_name: pharma-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=pharma_training;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
+      Jwt__Issuer: ${JWT_ISSUER:-PharmaTraining}
+      Jwt__Audience: ${JWT_AUDIENCE:-PharmaTrainingClient}
+      Jwt__ExpiresMinutes: ${JWT_EXPIRES_MINUTES:-120}
+      AzureBlob__ConnectionString: ${AZURE_BLOB_CONNECTION_STRING:-UseDevelopmentStorage=true}
+      AzureBlob__ContainerName: ${AZURE_BLOB_CONTAINER:-pharma-files}
+
+  frontend:
+    build:
+      context: ./new_frontend_pharmacy
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: /api
+    container_name: pharma-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
